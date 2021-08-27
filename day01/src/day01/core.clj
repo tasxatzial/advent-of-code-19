@@ -18,7 +18,20 @@
 
 (def parsed-input (parse (slurp input)))
 
+; --------------------------
+; problem 1
+
+(defn fuel
+  [module]
+  (Math/round (- (Math/floor (/ module 3)) 2)))
+
+; ---------------------------------------
+; results
+
+(defn day01-1
+  []
+  (apply + (map fuel parsed-input)))
+
 (defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (println "Hello, World!"))
+  []
+  (println (day01-1)))
