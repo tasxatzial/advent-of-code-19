@@ -37,6 +37,32 @@
 (def wire1-path (first parsed-input))
 (def wire2-path (second parsed-input))
 
+(defn next-location
+  "Finds the next wire location given a [x y] location and an
+  instruction of the form [direction number]"
+  [[x y] [direction number]]
+  (case direction
+    \R [(+ x number) y]
+    \L [(- x number) y]
+    \U [x (+ y number)]
+    \D [x (- y number)]))
+
+(defn wire-locations
+  "Returns a vector of locations based on the given wire path."
+  [wire-path]
+  (loop [locations [[0 0]]
+         wire-path wire-path]
+    (if (seq wire-path)
+      (let [last-loc (last locations)
+            instruction (first wire-path)
+            new-loc (next-location last-loc instruction)]
+        (recur (conj locations new-loc) (rest wire-path)))
+      locations)))
+
+; --------------------------
+; problem 1
+
+
 (defn -main
   []
-  (println wire1-path))
+  (println (wire-locations wire1-path)))
