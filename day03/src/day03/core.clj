@@ -142,18 +142,39 @@
 
 (defn common-points-wires
   "Finds the common points of the two wire-paths."
+  [wire1-path wire2-path]
+  (loop [[[_ l1] & rest-loc] wire2-path
+         points []]
+    (if-let [[d2 l2] (first rest-loc)]
+      (let [common-points (common-points-segment wire1-path [_ l1] [d2 l2])]
+        (if (seq common-points)
+          (recur rest-loc (into points common-points))
+          (recur rest-loc points)))
+      points)))
+
+(defn manhattan-distance
+  "Returns the manhattan distance of [x y] from [0 0]."
+  [[x y]]
+  (+ (Math/abs ^int x) (Math/abs ^int y)))
+
+(defn min-manhattan-distance
+  "Returns the minimum manhattan distance from [0 0] of the common points
+  of the two wires. Both wires are expected to start from [0 0] therefore
+  this point is excluded."
   []
   (let [wire1-path (wire-path wire1-instructions)
-        wire2-path (wire-path wire2-instructions)]
-    (loop [[[_ l1] & rest-loc] wire2-path
-           points []]
-      (if-let [[d2 l2] (first rest-loc)]
-        (let [common-points (common-points-segment wire1-path [_ l1] [d2 l2])]
-          (if (seq common-points)
-            (recur rest-loc (into points common-points))
-            (recur rest-loc points)))
-        points))))
+        wire2-path (wire-path wire2-instructions)
+        cross-points (rest (common-points-wires wire1-path wire2-path))
+        distances (mapv manhattan-distance cross-points)]
+    (apply min distances)))
+
+; ---------------------------------------
+; results
+
+(defn day02-1
+  []
+  (min-manhattan-distance))
 
 (defn -main
   []
-  (println (common-points-wires)))
+  (println (day02-1)))
