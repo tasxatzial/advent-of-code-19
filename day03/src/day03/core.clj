@@ -76,8 +76,8 @@
 ; R U
 (defn common-points-perpendicular
   "Finds the common point of the two perpendicular
-   vectors denoted as [[x1 _] [x2 y2]] and [[_ y3] [x4 y4]].
-   [x1 _] and [_ y3] are their starting points."
+  vectors denoted as [[x1 _] [x2 y2]] and [[_ y3] [x4 y4]].
+  [x1 _] and [_ y3] are their starting points."
   [[x1 _] [x2 y2] [_ y3] [x4 y4]]
   (if (and (<= x1 x4 x2) (<= y3 y2 y4))
     [[x4 y2]]
@@ -92,6 +92,38 @@
     (for [y (range (max y1 y3) (inc (min y2 y4)))]
       [x1 y])
     []))
+
+(defn cross-points
+  "Finds the common (integer) points of two vertical or
+  perpendicular vectors denoted as [[_ l1] [d2 l2]] and
+  [_ l3] [d4 l4].
+  - d2 and d4 denote the orientation of each vector (one of \R \L \U \D)
+  - l1, l3 denote the vector start points.
+  - l2, l4 denote the vector end points.
+  The explicit vector orientations d2 and d4 should match the implicit
+  orientations described by the vector start and end points."
+  [[_ l1] [d2 l2] [_ l3] [d4 l4]]
+  (case d2
+    \R (case d4
+         \R (common-points-horizontal l1 l2 l3 l4)
+         \U (common-points-perpendicular l1 l2 l3 l4)
+         \L (common-points-horizontal l1 l2 l4 l3)
+         \D (common-points-perpendicular l1 l2 l4 l3))
+    \L (case d4
+         \R (common-points-horizontal l2 l1 l3 l4)
+         \U (common-points-perpendicular l2 l1 l3 l4)
+         \L (common-points-horizontal l2 l1 l4 l3)
+         \D (common-points-perpendicular l2 l1 l4 l3))
+    \U (case d4
+         \R (common-points-perpendicular l3 l4 l1 l2)
+         \U (common-points-vertical l1 l2 l3 l4)
+         \L (common-points-perpendicular l4 l3 l1 l2)
+         \D (common-points-vertical l1 l2 l4 l3))
+    \D (case d4
+         \R (common-points-perpendicular l3 l4 l2 l1)
+         \U (common-points-vertical l2 l1 l3 l4)
+         \L (common-points-perpendicular l4 l3 l2 l1)
+         \D (common-points-vertical l2 l1 l4 l3))))
 
 (defn -main
   []
