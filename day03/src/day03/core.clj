@@ -48,7 +48,10 @@
     \D [x (- y number)]))
 
 (defn wire-path
-  "Returns a vector of locations based on the given wire instructions."
+  "Returns a vector of locations based on the given wire instructions.
+  Each location is denoted by a vector of two elements. First element
+  denotes the wire direction (one of \\R \\L \\U \\D) and the second
+  element denotes the corresponding wire end location."
   [wire-instructions]
   (loop [locations [[\I [0 0]]]
          wire-instructions wire-instructions]
@@ -64,9 +67,8 @@
 
 ; R R
 (defn common-points-horizontal
-  "Finds the common (integer) points of the two horizontal
-  vectors denoted as [[x1 y1] [x2 _]] and [[x3 y3] [x4 _]].
-  [x1 y1] and [x3 y3] are their starting points."
+  "Finds the common (integer) points of the two horizontal math
+  vectors denoted as [[x1 y1] [x2 _]] and [[x3 y3] [x4 _]]."
   [[x1 y1] [x2 _] [x3 y3] [x4 _]]
   (if (and (= y1 y3) (<= x1 x4) (<= x3 x2))
     (for [x (range (max x1 x3) (inc (min x2 x4)))]
@@ -75,29 +77,26 @@
 
 ; R U
 (defn common-points-perpendicular
-  "Finds the common point of the two perpendicular
-  vectors denoted as [[x1 _] [x2 y2]] and [[_ y3] [x4 y4]].
-  [x1 _] and [_ y3] are their starting points."
+  "Finds the common point of the two perpendicular math
+  vectors denoted as [[x1 _] [x2 y2]] and [[_ y3] [x4 y4]]."
   [[x1 _] [x2 y2] [_ y3] [x4 y4]]
   (if (and (<= x1 x4 x2) (<= y3 y2 y4))
     [[x4 y2]]
     []))
 
 (defn common-points-vertical
-  "Finds the common (integer) points of the two vertical
-  vectors denoted as [[x1 y1] [_ y2]] and [[x3 y3] [_ y4]].
-  [x1 y1] and [x3 y3] are their starting points."
+  "Finds the common (integer) points of the two vertical math
+  vectors denoted as [[x1 y1] [_ y2]] and [[x3 y3] [_ y4]]."
   [[x1 y1] [_ y2] [x3 y3] [_ y4]]
   (if (and (= x1 x3) (<= y1 y4) (<= y3 y2))
     (for [y (range (max y1 y3) (inc (min y2 y4)))]
       [x1 y])
     []))
 
-(defn cross-points
+(defn common-points
   "Finds the common (integer) points of two vertical or
-  perpendicular vectors denoted as [[_ l1] [d2 l2]] and
-  [_ l3] [d4 l4].
-  - d2 and d4 denote the orientation of each vector (one of \R \L \U \D)
+  perpendicular math vectors denoted as [[_ l1] [d2 l2]] and [_ l3] [d4 l4].
+  - d2 and d4 denote the orientation of each vector (one of \\R \\L \\U \\D)
   - l1, l3 denote the vector start points.
   - l2, l4 denote the vector end points.
   The explicit vector orientations d2 and d4 should match the implicit
@@ -125,6 +124,36 @@
          \L (common-points-perpendicular l4 l3 l2 l1)
          \D (common-points-vertical l2 l1 l4 l3))))
 
+(defn common-points-segment
+  "Finds the common points of a wire-path and a wire segment
+  denoted by [[_ l1] [d2 l2]].
+  - l1 is the start location of the segment.
+  - d2 is the direction of the segment (one of \\R \\L \\U \\D).
+  - k2 us the end location of the segment."
+  [wire-path [_ l1] [d2 l2]]
+  (loop [[[_ l3] & rest-loc] wire-path
+         points []]
+    (if-let [[d4 l4] (first rest-loc)]
+      (let [common-points (common-points [_ l1] [d2 l2] [_ l3] [d4 l4])]
+        (if (seq common-points)
+          (recur rest-loc (into points common-points))
+          (recur rest-loc points)))
+      points)))
+
+(defn common-points-wires
+  "Finds the common points of the two wire-paths."
+  []
+  (let [wire1-path (wire-path wire1-instructions)
+        wire2-path (wire-path wire2-instructions)]
+    (loop [[[_ l1] & rest-loc] wire2-path
+           points []]
+      (if-let [[d2 l2] (first rest-loc)]
+        (let [common-points (common-points-segment wire1-path [_ l1] [d2 l2])]
+          (if (seq common-points)
+            (recur rest-loc (into points common-points))
+            (recur rest-loc points)))
+        points))))
+
 (defn -main
   []
-  (println (wire-path wire1-instructions)))
+  (println (common-points-wires)))
