@@ -16,38 +16,38 @@
   [s]
   (clojure.string/split s #"\n"))
 
-(defn parse-wire
+(defn parse-wire-input
   "Parses the input of each wire and returns a
-  vector consisting of vectors. Each subvector denotes
-  a path segment with its first element denoting the
+  vector consisting of 2-element vectors. Each vector denotes
+  an instruction with its first element denoting the
   direction and the second element the number of steps
   in that direction."
   [s]
-  (let [wire-path-input (clojure.string/split s #",")
+  (let [instructions (clojure.string/split s #",")
         direction #(first %)
         number #(str->int (apply str (rest %)))]
     (mapv #(vector (direction %) (number %))
-          wire-path-input)))
+          instructions)))
 
 ;parse all input
 (def parsed-input
   (let [wire-input (split-by-wire (slurp input-file))]
-    (mapv parse-wire wire-input)))
+    (mapv parse-wire-input wire-input)))
 
 (def wire1-instructions (first parsed-input))
 (def wire2-instructions (second parsed-input))
 
 (defn next-location
   "Finds the next wire location given a [x y] location and an
-  instruction of the form [direction number]"
-  [[x y] [direction number]]
+  instruction of the form [direction steps]"
+  [[x y] [direction steps]]
   (case direction
-    \R [(+ x number) y]
-    \L [(- x number) y]
-    \U [x (+ y number)]
-    \D [x (- y number)]))
+    \R [(+ x steps) y]
+    \L [(- x steps) y]
+    \U [x (+ y steps)]
+    \D [x (- y steps)]))
 
-(defn wire-path
+(defn create-wire-path
   "Returns a vector of locations based on the given wire instructions.
   Each location is denoted by a vector of two elements. First element
   denotes the wire direction (one of \\R \\L \\U \\D) and the second
@@ -62,11 +62,13 @@
         (recur (conj locations [direction new-loc]) (rest wire-instructions)))
       locations)))
 
+(def memoized-create-wire-path (memoize create-wire-path))
+
 ; --------------------------
 ; problem 1
 
 ; R R
-(defn common-points-horizontal
+(defn find-common-points-horizontal
   "Finds the common (integer) points of the two horizontal math
   vectors denoted as [[x1 y1] [x2 _]] and [[x3 y3] [x4 _]]."
   [[x1 y1] [x2 _] [x3 y3] [x4 _]]
@@ -76,7 +78,7 @@
     []))
 
 ; R U
-(defn common-points-perpendicular
+(defn find-common-points-perpendicular
   "Finds the common point of the two perpendicular math
   vectors denoted as [[x1 _] [x2 y2]] and [[_ y3] [x4 y4]]."
   [[x1 _] [x2 y2] [_ y3] [x4 y4]]
@@ -84,7 +86,7 @@
     [[x4 y2]]
     []))
 
-(defn common-points-vertical
+(defn find-common-points-vertical
   "Finds the common (integer) points of the two vertical math
   vectors denoted as [[x1 y1] [_ y2]] and [[x3 y3] [_ y4]]."
   [[x1 y1] [_ y2] [x3 y3] [_ y4]]
@@ -93,7 +95,7 @@
       [x1 y])
     []))
 
-(defn common-points
+(defn find-common-points
   "Finds the common (integer) points of two vertical or
   perpendicular math vectors denoted as [[_ l1] [d2 l2]] and [_ l3] [d4 l4].
   - d2 and d4 denote the orientation of each vector (one of \\R \\L \\U \\D)
@@ -104,53 +106,55 @@
   [[_ l1] [d2 l2] [_ l3] [d4 l4]]
   (case d2
     \R (case d4
-         \R (common-points-horizontal l1 l2 l3 l4)
-         \U (common-points-perpendicular l1 l2 l3 l4)
-         \L (common-points-horizontal l1 l2 l4 l3)
-         \D (common-points-perpendicular l1 l2 l4 l3))
+         \R (find-common-points-horizontal l1 l2 l3 l4)
+         \U (find-common-points-perpendicular l1 l2 l3 l4)
+         \L (find-common-points-horizontal l1 l2 l4 l3)
+         \D (find-common-points-perpendicular l1 l2 l4 l3))
     \L (case d4
-         \R (common-points-horizontal l2 l1 l3 l4)
-         \U (common-points-perpendicular l2 l1 l3 l4)
-         \L (common-points-horizontal l2 l1 l4 l3)
-         \D (common-points-perpendicular l2 l1 l4 l3))
+         \R (find-common-points-horizontal l2 l1 l3 l4)
+         \U (find-common-points-perpendicular l2 l1 l3 l4)
+         \L (find-common-points-horizontal l2 l1 l4 l3)
+         \D (find-common-points-perpendicular l2 l1 l4 l3))
     \U (case d4
-         \R (common-points-perpendicular l3 l4 l1 l2)
-         \U (common-points-vertical l1 l2 l3 l4)
-         \L (common-points-perpendicular l4 l3 l1 l2)
-         \D (common-points-vertical l1 l2 l4 l3))
+         \R (find-common-points-perpendicular l3 l4 l1 l2)
+         \U (find-common-points-vertical l1 l2 l3 l4)
+         \L (find-common-points-perpendicular l4 l3 l1 l2)
+         \D (find-common-points-vertical l1 l2 l4 l3))
     \D (case d4
-         \R (common-points-perpendicular l3 l4 l2 l1)
-         \U (common-points-vertical l2 l1 l3 l4)
-         \L (common-points-perpendicular l4 l3 l2 l1)
-         \D (common-points-vertical l2 l1 l4 l3))))
+         \R (find-common-points-perpendicular l3 l4 l2 l1)
+         \U (find-common-points-vertical l2 l1 l3 l4)
+         \L (find-common-points-perpendicular l4 l3 l2 l1)
+         \D (find-common-points-vertical l2 l1 l4 l3))))
 
-(defn common-points-segment
+(defn find-common-points-segment
   "Finds the common points of a wire-path and a wire segment
   denoted by [[_ l1] [d2 l2]].
   - l1 is the start location of the segment.
   - d2 is the direction of the segment (one of \\R \\L \\U \\D).
-  - k2 us the end location of the segment."
+  - k2 is the end location of the segment."
   [wire-path [_ l1] [d2 l2]]
   (loop [[[_ l3] & rest-loc] wire-path
          points []]
     (if-let [[d4 l4] (first rest-loc)]
-      (let [common-points (common-points [_ l1] [d2 l2] [_ l3] [d4 l4])]
-        (if (seq common-points)
-          (recur rest-loc (into points common-points))
+      (let [new-common-points (find-common-points [_ l1] [d2 l2] [_ l3] [d4 l4])]
+        (if (seq new-common-points)
+          (recur rest-loc (into points new-common-points))
           (recur rest-loc points)))
       points)))
 
-(defn common-points-wires
-  "Finds the common points of the two wire-paths."
+(defn find-common-points-paths
+  "Finds the common points of the given wire-paths."
   [wire1-path wire2-path]
-  (loop [[[_ l1] & rest-loc] wire2-path
-         points []]
-    (if-let [[d2 l2] (first rest-loc)]
-      (let [common-points (common-points-segment wire1-path [_ l1] [d2 l2])]
-        (if (seq common-points)
-          (recur rest-loc (into points common-points))
-          (recur rest-loc points)))
-      points)))
+  (loop [[[_ l1] & rest-path] wire2-path
+         common-points []]
+    (if-let [[d2 l2] (first rest-path)]
+      (let [new-common-points (find-common-points-segment wire1-path [_ l1] [d2 l2])]
+        (if (seq new-common-points)
+          (recur rest-path (into common-points new-common-points))
+          (recur rest-path common-points)))
+      common-points)))
+
+(def memoized-find-common-points-wire-paths (memoize find-common-points-paths))
 
 (defn manhattan-distance
   "Returns the manhattan distance of [x y] from [0 0]."
@@ -162,10 +166,10 @@
   of the two wires. Both wires are expected to start from [0 0] therefore
   this point is excluded."
   []
-  (let [wire1-path (wire-path wire1-instructions)
-        wire2-path (wire-path wire2-instructions)
-        cross-points (rest (common-points-wires wire1-path wire2-path))
-        distances (mapv manhattan-distance cross-points)]
+  (let [wire1-path (memoized-create-wire-path wire1-instructions)
+        wire2-path (memoized-create-wire-path wire2-instructions)
+        common-path-points (rest (memoized-find-common-points-wire-paths wire1-path wire2-path))
+        distances (mapv manhattan-distance common-path-points)]
     (apply min distances)))
 
 ; ---------------------------------------
