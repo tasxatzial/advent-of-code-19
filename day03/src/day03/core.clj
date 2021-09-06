@@ -172,6 +172,24 @@
         distances (mapv manhattan-distance common-path-points)]
     (apply min distances)))
 
+; --------------------------
+; problem 2
+
+(defn add-wire-path-distances
+  "Updates the given wire-path by appending to each path location the wire length
+  from the start of the wire to that location."
+  [wire-path wire-instructions]
+  (loop [[path-segment & rest-path] (rest wire-path)
+         [[_ steps] & rest-instructions] wire-instructions
+         new-path []
+         total-steps 0]
+    (if path-segment
+      (let [new-segment (conj path-segment (+ total-steps steps))
+            new-path (conj new-path new-segment)
+            new-total-steps (+ total-steps steps)]
+        (recur rest-path rest-instructions new-path new-total-steps))
+      new-path)))
+
 ; ---------------------------------------
 ; results
 
