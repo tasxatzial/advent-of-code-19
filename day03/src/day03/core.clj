@@ -127,8 +127,7 @@
          \D (find-common-points-vertical l2 l1 l4 l3))))
 
 (defn find-common-points-segment
-  "Finds the common points of a wire-path and a wire segment
-  denoted by [[_ l1] [d2 l2]].
+  "Finds the common points of a wire and a wire segment denoted by [[_ l1] [d2 l2]].
   - l1 is the start location of the segment.
   - d2 is the direction of the segment (one of \\R \\L \\U \\D).
   - k2 is the end location of the segment."
@@ -143,7 +142,7 @@
       points)))
 
 (defn find-common-points-paths
-  "Finds the common points of the given wire-paths."
+  "Finds the common points of the given wires."
   [wire1-path wire2-path]
   (loop [[[_ l1] & rest-path] wire2-path
          common-points []]
@@ -175,9 +174,9 @@
 ; --------------------------
 ; problem 2
 
-(defn add-wire-path-distances
-  "Updates the given wire-path by appending to each path location the wire length
-  from the start of the wire to that location."
+(defn add-wire-path-steps
+  "Updates the given wire-path by appending to each path location the number of steps
+  from the start of the path to that location."
   [wire-path wire-instructions]
   (loop [[path-segment & rest-path] (rest wire-path)
          [[_ steps] & rest-instructions] wire-instructions
@@ -189,6 +188,29 @@
             new-total-steps (+ total-steps steps)]
         (recur rest-path rest-instructions new-path new-total-steps))
       new-path)))
+
+(defn calc-point-steps
+  "Calculates the minimum steps from the start of the wire-path to a wire
+  location [x y]. Wire locations can be any integer point on a horizontal or
+  vertical path segment (denoted by two consecutive wire-path elements)."
+  [wire-path [x y]]
+  (loop [[[d1 [x1 y1] dist1] & rest-path] wire-path]
+    (if d1
+      (if-let [[_ [x2 y2] _] (first rest-path)]
+        (cond
+          (= y y1) (cond
+                     (<= x1 x x2) (+ dist1 (- x x1))
+                     (<= x2 x x1) (+ dist1 (- x1 x)))
+          (= x x1) (cond
+                     (<= y1 y y2) (+ dist1 (- y y1))
+                     (<= y2 y y1) (+ dist1 (- y1 y)))
+          :else (recur rest-path))))))
+
+(defn calc-common-points-steps
+  "Calls calc-point-steps for each point in the given common-points and collects
+  the steps in a vector."
+  [wire-path common-points]
+  (mapv #(calc-point-steps wire-path %) common-points))
 
 ; ---------------------------------------
 ; results
