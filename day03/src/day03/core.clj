@@ -153,7 +153,7 @@
           (recur rest-path common-points)))
       common-points)))
 
-(def memoized-find-common-points-wire-paths (memoize find-common-points-paths))
+(def memoized-find-common-points-paths (memoize find-common-points-paths))
 
 (defn manhattan-distance
   "Returns the manhattan distance of [x y] from [0 0]."
@@ -167,7 +167,7 @@
   []
   (let [wire1-path (memoized-create-wire-path wire1-instructions)
         wire2-path (memoized-create-wire-path wire2-instructions)
-        common-path-points (rest (memoized-find-common-points-wire-paths wire1-path wire2-path))
+        common-path-points (rest (memoized-find-common-points-paths wire1-path wire2-path))
         distances (mapv manhattan-distance common-path-points)]
     (apply min distances)))
 
@@ -212,13 +212,28 @@
   [wire-path common-points]
   (mapv #(calc-point-steps wire-path %) common-points))
 
+(defn calc-min-steps-sum
+  "Finds the fewest combined steps the wires must take to reach a common point."
+  []
+  (let [wire1-path (add-wire-path-steps (memoized-create-wire-path wire1-instructions) wire1-instructions)
+        wire2-path (add-wire-path-steps (memoized-create-wire-path wire2-instructions) wire2-instructions)
+        common-points-wires (memoized-find-common-points-paths wire1-path wire2-path)
+        wire1-distances (calc-common-points-steps wire1-path common-points-wires)
+        wire2-distances (calc-common-points-steps wire2-path common-points-wires)]
+    (apply min (map + wire1-distances wire2-distances))))
+
 ; ---------------------------------------
 ; results
 
-(defn day02-1
+(defn day03-1
   []
   (min-manhattan-distance))
 
+(defn day03-2
+  []
+  (calc-min-steps-sum))
+
 (defn -main
   []
-  (println (day02-1)))
+  (println (day03-1))
+  (println (day03-2)))
