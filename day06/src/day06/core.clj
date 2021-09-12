@@ -18,6 +18,32 @@
 
 (def orbits (parse-input (slurp input-file)))
 
+; --------------------------
+; problem 1
+
+(defn count-object-orbits
+  "Counts the orbits of obj."
+  [obj]
+  (loop [result 0
+         obj (obj orbits)]
+    (if obj
+      (recur (inc result) (obj orbits))
+      result)))
+
+(defn count-orbits
+  "Counts the total orbits."
+  []
+  (reduce (fn [result [obj1 _]]
+            (+ result (count-object-orbits obj1)))
+          0 orbits))
+
+; ---------------------------------------
+; results
+
+(defn day06-1
+  []
+  (count-orbits))
+
 (defn -main
   []
-  (println orbits))
+  (println (day06-1)))
