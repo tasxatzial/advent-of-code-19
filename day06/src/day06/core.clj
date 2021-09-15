@@ -49,6 +49,19 @@
       (recur (conj obj-orbits obj) (obj orbits))
       obj-orbits)))
 
+(defn count-orbital-transfers
+  "Counts the number of orbital transfers (in the given
+  sequence of object-orbits) required to reach the given obj.
+  Returns -1 if obj cannot be reached."
+  [obj object-orbits]
+  (loop [result 0
+         [curr-obj & rest-objects] object-orbits]
+    (if curr-obj
+      (if (= curr-obj obj)
+        result
+        (recur (inc result) rest-objects))
+      -1)))
+
 ; ---------------------------------------
 ; results
 
