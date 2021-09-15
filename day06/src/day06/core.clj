@@ -62,6 +62,23 @@
         (recur (inc result) rest-objects))
       -1)))
 
+(defn find-min-orbital-transfers
+  "Finds the minimum number of orbital transfers required to move from
+  the object :YOU is orbiting to the object :SAN is orbiting."
+  []
+  (let [you-orbits (find-object-orbits :YOU)
+        santa-orbits (find-object-orbits :SAN)]
+    (loop [result (+ (count santa-orbits) (count you-orbits))
+           index 0]
+      (if (= index (count santa-orbits))
+        result
+        (let [santa-obj (get santa-orbits index)
+              transfers-count (count-orbital-transfers santa-obj you-orbits)]
+          (if (not= -1 transfers-count)
+            (let [total-transfers (+ index transfers-count)]
+              (recur (min result total-transfers) (inc index)))
+            (recur result (inc index))))))))
+
 ; ---------------------------------------
 ; results
 
@@ -69,6 +86,11 @@
   []
   (count-orbits))
 
+(defn day06-2
+  []
+  (find-min-orbital-transfers))
+
 (defn -main
   []
-  (println (find-object-orbits :YOU)))
+  (println (day06-1))
+  (println (day06-2)))
