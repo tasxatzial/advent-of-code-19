@@ -17,8 +17,7 @@
   []
   (->> (slurp input-file)
        (map #(Character/digit ^char % 10))
-       (partition wide)
-       (partition tall)))
+       (partition (* wide tall))))
 
 (def layers (parse-input-file))
 
@@ -28,9 +27,7 @@
 (defn count-layer-num
   "Counts the number of nums in the given layer."
   [layer num]
-  (reduce (fn [result row]
-            (+ result (count (filter #(= num %) row))))
-          0 layer))
+  (count (filter #(= num %) layer)))
 
 (defn find-min-zeros-layer
   "Finds the layer with the min number of zeros."
