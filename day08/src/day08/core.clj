@@ -40,6 +40,26 @@
           (nth layers index)
           (recur (inc index)))))))
 
+; --------------------------
+; problem 2
+
+(defn find-first-visible
+  "Finds the first visible pixel in position index."
+  [index]
+  (let [i-pixels (map #(nth % index) layers)]
+    (some #(and (not= 2 %) %) i-pixels)))
+
+(defn decode-image
+  "Decodes the image by finding the first visible pixel in every position."
+  []
+  (let [layer-pixel-count (count (first layers))]
+    (loop [result []
+           index 0]
+      (if (= layer-pixel-count index)
+        (partition wide result)
+        (recur (conj result (find-first-visible index))
+               (inc index))))))
+
 ; ---------------------------------------
 ; results
 
@@ -50,6 +70,11 @@
         twos-count (count-layer-num min-zeros-layer 2)]
     (* ones-count twos-count)))
 
+(defn day08-2
+  []
+  (decode-image))
+
 (defn -main
   []
-  (println (day08-1)))
+  (println (day08-1))
+  (println (day08-2)))
