@@ -6,78 +6,70 @@
 
 (def input-file "resources\\input.txt")
 
-(defn str->int
-  "Converts a string to integer."
-  [s]
-  (Integer/parseInt s))
+(defn parse-file
+  "Reads and parses the input file into a vector of numbers."
+  []
+  (mapv #(Integer/parseInt %)
+        (clojure.string/split (-> input-file slurp) #"[,\n]")))
 
-(defn parse
-  "Splits the input string by , or \n and converts it into a list of numbers."
-  [s]
-  (mapv str->int (clojure.string/split s #"[,\n]")))
+(def memoized-input-file->program (memoize parse-file))
 
-(def intcodes (parse (slurp input-file)))
-
-(defn init-intcodes
-  "Initializes intcodes with input1 and input2 at positions
+(defn init-program
+  "Updates the program with input1 and input2 at indices
   1 and 2 respectively."
   [input1 input2]
-  (assoc (assoc intcodes 1 input1) 2 input2))
+  (-> (memoized-input-file->program)
+      (assoc 1 input1)
+      (assoc 2 input2)))
 
 ; --------------------------
 ; problem 1
 
-; replace position 1 with value 12, position 2 with value 2
-(def updated-intcodes (init-intcodes 12 2))
-
-(defn opcode-result
-  "Returns a result given an opcode (1 or 2) and two inputs.
-  Returns -1 if opcode is not 1 or 2."
-  [code input1 input2]
+(defn exec-instruction
+  "Executes the given instruction and returns the result.
+  Returns nil if the code isn't 1 or 2."
+  [code param1 param2]
   (case code
-    1 (+ input1 input2)
-    2 (* input1 input2)
-    -1))
+    1 (+ param1 param2)
+    2 (* param1 param2)
+    nil))
 
-(defn run-intcodes
-  "Runs the list of intcodes and returns the updated list."
-  [codes]
+(defn exec-program
+  "Executes the instructions and returns the final program."
+  [program]
   (loop [i 0
-         codes codes]
-    (let [opcode (get codes i)
-          input1-pos (get codes (inc i))
-          input1 (get codes input1-pos)
-          input2-pos (get codes (+ i 2))
-          input2 (get codes input2-pos)
-          output-pos (get codes (+ i 3))
-          result (opcode-result opcode input1 input2)]
-      (if (= -1 result)
-        codes
-        (recur (+ i 4) (assoc codes output-pos result))))))
+         program program]
+    (let [opcode (get program i)]
+      (if (= opcode 99)
+        program
+        (let [param1 (get program (get program (inc i)))
+              param2 (get program (get program (+ i 2)))
+              write-idx (get program (+ i 3))
+              result (exec-instruction opcode param1 param2)]
+          (recur (+ i 4) (assoc program write-idx result)))))))
 
 ; --------------------------
 ; problem 2
 
 (defn find-inputs
-  "Returns the inputs that produce the given output."
+  "Returns a vector of the two inputs that we need to initialize
+  the program with so that the given output is at index 0 when
+  the program halts."
   [output]
-  (let [candidates (for [x (range 100)
-                         y (range 100)]
-                     [x y])]
-    (loop [candidates candidates]
-      (when (seq candidates)
-        (let [[x y] (first candidates)
-              updated-intcodes (init-intcodes x y)]
-          (if (= output (first (run-intcodes updated-intcodes)))
-            [x y]
-            (recur (rest candidates))))))))
+  (loop [candidates (for [x (range 100) y (range 100)] [x y])]
+    (when (seq candidates)
+      (let [candidate (first candidates)
+            initial-program (apply init-program candidate)]
+        (if (= output (first (exec-program initial-program)))
+          candidate
+          (recur (rest candidates)))))))
 
 ; ---------------------------------------
 ; results
 
 (defn day02-1
   []
-  (first (run-intcodes updated-intcodes)))
+  (first (exec-program (init-program 12 2))))
 
 (defn day02-2
   []
