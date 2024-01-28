@@ -6,36 +6,46 @@
 
 (def input-file "resources\\input.txt")
 
-(defn parse-input
-  "Parses the input and returns a map of orbits. A key
-  represents the object that orbits the corresponding value."
+(defn parse-line
+  "Parses an input line into a vector of two keywords. For example
+  \"W6M)G8S\" is parsed into [:W6M :G8S]."
   [s]
-  (let [lines (clojure.string/split s #"\n")]
-    (reduce (fn [result line]
-              (let [[obj1 obj2] (clojure.string/split line #"\)")]
-                (conj result [(keyword obj2) (keyword obj1)])))
-            {} lines)))
+  (->> (clojure.string/split s #"\)")
+       reverse
+       (mapv keyword)))
 
-(def orbits (parse-input (slurp input-file)))
+(defn parse-file
+  "Parses the input and returns a map. Keys and values are keywords.
+  Keys represent the objects that orbit their corresponding value."
+  []
+  (->> input-file
+       slurp
+       clojure.string/split-lines
+       (map parse-line)
+       (into {})))
 
-; --------------------------
+(def memoized-input-file->orbits (memoize parse-file))
+
+; -------------------------
 ; problem 1
 
 (defn count-object-orbits
   "Counts the number of objects the given obj orbits."
   [obj]
-  (loop [result 0
-         obj (obj orbits)]
-    (if obj
-      (recur (inc result) (obj orbits))
-      result)))
+  (let [orbits (memoized-input-file->orbits)]
+    (loop [result 0
+           obj (obj orbits)]
+      (if obj
+        (recur (inc result) (obj orbits))
+        result))))
 
 (defn count-orbits
   "Counts the total number of orbits."
   []
-  (reduce (fn [result [obj1 _]]
-            (+ result (count-object-orbits obj1)))
-          0 orbits))
+  (->> (memoized-input-file->orbits)
+       keys
+       (map count-object-orbits)
+       (reduce +)))
 
 ; --------------------------
 ; problem 2
@@ -43,23 +53,19 @@
 (defn find-object-orbits
   "Returns a vector of the objects the given obj orbits."
   [obj]
-  (loop [obj-orbits []
-         obj (obj orbits)]
-    (if obj
-      (recur (conj obj-orbits obj) (obj orbits))
-      obj-orbits)))
+  (->> obj
+       (iterate (memoized-input-file->orbits))
+       (take-while some?)
+       rest
+       vec))
 
 (defn count-orbital-transfers
-  "Counts the number of orbital transfers (in the given
-  sequence of object-orbits) required to reach the given obj.
+  "Returns the number of objects required to reach the given obj.
   Returns -1 if obj cannot be reached."
   [obj object-orbits]
-  (loop [result 0
-         [curr-obj & rest-objects] object-orbits]
-    (if curr-obj
-      (if (= curr-obj obj)
-        result
-        (recur (inc result) rest-objects))
+  (let [after-obj (drop-while #(not= % obj) object-orbits)]
+    (if (seq after-obj)
+      (- (count object-orbits) (count after-obj))
       -1)))
 
 (defn find-min-orbital-transfers
@@ -67,17 +73,15 @@
   the object :YOU is orbiting to the object :SAN is orbiting."
   []
   (let [you-orbits (find-object-orbits :YOU)
-        santa-orbits (find-object-orbits :SAN)]
-    (loop [result (+ (count santa-orbits) (count you-orbits))
-           index 0]
-      (if (= index (count santa-orbits))
-        result
-        (let [santa-obj (get santa-orbits index)
-              transfers-count (count-orbital-transfers santa-obj you-orbits)]
-          (if (not= -1 transfers-count)
-            (let [total-transfers (+ index transfers-count)]
-              (recur (min result total-transfers) (inc index)))
-            (recur result (inc index))))))))
+        santa-orbits (find-object-orbits :SAN)
+        santa-orbits-set (set santa-orbits)]
+    (loop [index 0
+           min-transfers Integer/MAX_VALUE]
+      (if-let [obj (get you-orbits index)]
+        (if (contains? santa-orbits-set obj)
+          (recur (inc index) (min min-transfers (+ index (count-orbital-transfers obj santa-orbits))))
+          (recur (inc index) min-transfers))
+        min-transfers))))
 
 ; ---------------------------------------
 ; results
